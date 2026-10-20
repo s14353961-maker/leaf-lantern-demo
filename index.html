@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Leaf & Lantern: a demo tea shop with catalog, cart, checkout and admin dashboard.">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Leaf &amp; Lantern Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: storefront = sticky header + promo strip + filter row + product grid, with a cart drawer and modal;
+   admin = side nav + operational panels. Tea-shop identity: jade green, hibiscus plum for offers, drawn tea tins. */
+:root{
+  --bg:#F2F5F1; --surface:#FFFFFF; --surface-2:#E8EEE9; --fg:#14201A; --muted:#55655C; --line:#D2DBD4;
+  --accent:#1D6A50; --accent-hover:#16573F; --accent-fg:#FFFFFF; --accent-soft:#D8E9DE; --accent-mid:#8FC1A6;
+  --plum:#913460; --plum-soft:#F4E0E9;
+  --ok:#2C7537; --ok-soft:#DCEEDE; --warn:#8C6000; --warn-soft:#F5EACB; --bad:#AE3A2E; --bad-soft:#F6DDD9; --info:#2A5DA5; --info-soft:#DCE6F5;
+  --overlay:rgba(12,20,16,.48);
+  --shadow:0 1px 2px rgba(20,32,26,.06),0 10px 30px rgba(20,32,26,.10);
+  --tile-s:32%; --tile-l:88%; --obj-l:40%; --obj-l2:28%; --label-l:96%;
+  --f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --f-body:"Figtree","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:12px; --r-sm:8px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1512; --surface:#151F1A; --surface-2:#1C2923; --fg:#E4EDE7; --muted:#93A59A; --line:#2A3832;
+  --accent:#5DC39B; --accent-hover:#79D2AE; --accent-fg:#08130E; --accent-soft:#1B3A2D; --accent-mid:#2F6B52;
+  --plum:#E58BB6; --plum-soft:#3A1F2C;
+  --ok:#7ACB86; --ok-soft:#1D3522; --warn:#E3B653; --warn-soft:#3A3018; --bad:#F08E83; --bad-soft:#3E201C; --info:#8DB4F0; --info-soft:#1C2A40;
+  --overlay:rgba(0,0,0,.6); --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.45);
+  --tile-l:21%; --obj-l:52%; --obj-l2:38%; --label-l:84%; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0E1512; --surface:#151F1A; --surface-2:#1C2923; --fg:#E4EDE7; --muted:#93A59A; --line:#2A3832;
+  --accent:#5DC39B; --accent-hover:#79D2AE; --accent-fg:#08130E; --accent-soft:#1B3A2D; --accent-mid:#2F6B52;
+  --plum:#E58BB6; --plum-soft:#3A1F2C;
+  --ok:#7ACB86; --ok-soft:#1D3522; --warn:#E3B653; --warn-soft:#3A3018; --bad:#F08E83; --bad-soft:#3E201C; --info:#8DB4F0; --info-soft:#1C2A40;
+  --overlay:rgba(0,0,0,.6); --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.45);
+  --tile-l:21%; --obj-l:52%; --obj-l2:38%; --label-l:84%; color-scheme:dark; }
+
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto}
+.num,.tab{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--f-mono);font-size:.86em}
+.muted{color:var(--muted)}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Buttons & inputs */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface);
+  padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;line-height:1.2;transition:background .15s,border-color .15s,color .15s}
+.btn:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn-accent:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-ghost{border-color:transparent;background:transparent}
+.btn-ghost:hover{background:var(--surface-2);border-color:transparent}
+.btn-sm{padding:7px 13px;font-size:13px}
+.btn-block{width:100%;padding:13px 18px;font-size:15px}
+.iconbtn{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:999px;border:1px solid transparent;background:transparent;position:relative}
+.iconbtn:hover{background:var(--surface-2)}
+.linklike{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left}
+.linklike:hover{color:var(--accent)}
+.input,.select,textarea.input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);min-width:0}
+.input:focus,.select:focus{outline:2px solid var(--accent-mid);outline-offset:0;border-color:var(--accent)}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.label{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.01em}
+.field.has-err .input,.field.has-err .select{border-color:var(--bad)}
+.err{font-size:13px;color:var(--bad)}
+.hint{font-size:13px;color:var(--muted)}
+
+/* Demo bar */
+.demobar{background:var(--fg);color:var(--bg)}
+.demobar .wrap{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;padding-block:8px;font-size:13px}
+.demobar .tag{font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:11px;border:1px solid currentColor;border-radius:999px;padding:2px 8px;opacity:.85}
+.demobar .note{opacity:.75;flex:1 1 220px;min-width:0}
+.seg{display:inline-flex;background:color-mix(in srgb,var(--bg) 14%,transparent);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;color:inherit;padding:6px 14px;border-radius:999px;font-weight:600;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.seg button[aria-pressed="true"]{background:var(--bg);color:var(--fg)}
+.demobar .reset{background:transparent;border:0;color:inherit;opacity:.75;font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:4px}
+.demobar .reset:hover{opacity:1}
+.demobar .reset.armed{opacity:1;color:var(--plum-soft);font-weight:700}
+
+/* Shop header */
+.shop-head{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--surface);border-bottom:1px solid var(--line)}
+.shop-head .wrap{display:flex;align-items:center;gap:14px;padding-block:12px}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;text-align:left}
+.brand-name{font-family:var(--f-display);font-weight:800;font-size:19px;letter-spacing:-.02em;line-height:1}
+.brand-sub{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+.logo{width:32px;height:32px;flex:none}
+.lg-a{fill:var(--fg)} .lg-b{fill:var(--accent)} .lg-c{fill:var(--accent-fg)}
+.search{flex:1;display:flex;align-items:center;gap:8px;max-width:440px;margin-left:auto;background:var(--surface-2);border-radius:999px;padding:0 14px;min-width:0}
+.search input{border:0;background:transparent;padding:10px 0;width:100%;min-width:0;outline:none}
+.search:focus-within{outline:2px solid var(--accent-mid)}
+.head-actions{display:flex;align-items:center;gap:4px}
+.count{position:absolute;top:2px;right:0;background:var(--plum);color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 5px}
+.promo-strip{background:var(--accent);color:var(--accent-fg);font-size:13.5px;font-weight:500;text-align:center}
+.promo-strip .wrap{padding-block:8px}
+
+/* Intro + filters */
+.intro{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;align-items:end;padding-block:30px 18px}
+.intro h1{font-size:clamp(28px,4.4vw,44px);font-weight:800;line-height:1.05}
+.intro p{color:var(--muted);margin:10px 0 0;max-width:52ch}
+.offer{border:1px dashed var(--plum);background:var(--plum-soft);border-radius:var(--r);padding:14px 16px;display:flex;gap:12px;align-items:center}
+.offer b{font-family:var(--f-mono);letter-spacing:.04em;color:var(--plum)}
+.offer .t{font-size:14px}
+.filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding-block:6px 18px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:500;display:inline-flex;gap:6px;align-items:center}
+.chip .n{color:var(--muted);font-size:12px}
+.chip[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.chip[aria-pressed="true"] .n{color:inherit;opacity:.7}
+.sortbox{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.sortbox .select{width:auto;padding:7px 10px;border-radius:999px}
+
+/* Product grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;padding-bottom:40px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.card-art{border:0;padding:0;background:none;position:relative;display:block;width:100%}
+.badges{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--surface);color:var(--fg);letter-spacing:.01em}
+.badge.sale{background:var(--plum);color:#fff}
+.badge.new{background:var(--accent);color:var(--accent-fg)}
+.badge.low{background:var(--warn-soft);color:var(--warn)}
+.badge.out{background:var(--fg);color:var(--bg)}
+.card-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:3px;flex:1}
+.card-meta{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.card-title{font-size:17px;font-weight:650;line-height:1.25}
+.card-origin{font-size:13.5px;color:var(--muted)}
+.card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:12px}
+.price{font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.price s{font-weight:500;color:var(--muted);font-size:13.5px;margin-left:6px}
+.empty{padding:60px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--r);margin-bottom:40px}
+.empty h3{color:var(--fg);font-size:20px;margin-bottom:6px}
+
+/* Art */
+.art{display:block;width:100%;height:auto;aspect-ratio:5/4;max-width:100%}
+.art .bg{fill:hsl(var(--h) var(--tile-s) var(--tile-l))}
+.art .sh{fill:hsl(var(--h) var(--tile-s) calc(var(--tile-l) - 6%))}
+.art .o1{fill:hsl(var(--h) 36% var(--obj-l))}
+.art .o2{fill:hsl(var(--h) 40% var(--obj-l2))}
+.art .lb{fill:hsl(var(--h) 28% var(--label-l))}
+.art .gl{fill:hsl(var(--h) 22% var(--label-l));opacity:.55}
+.art .ln{fill:none;stroke:hsl(var(--h) 36% var(--obj-l));stroke-width:8;stroke-linecap:round}
+.art .st{fill:none;stroke:hsl(var(--h) 20% var(--label-l));stroke-width:3;stroke-linecap:round;opacity:.8}
+
+/* Overlay, modal, drawer */
+.overlay{position:fixed;inset:0;background:var(--overlay);z-index:60;display:flex}
+.overlay.modal{align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.overlay.drawer{justify-content:flex-end}
+.panel{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+.modal-panel{border-radius:16px;width:min(880px,100%);max-height:100%;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.drawer-panel{width:min(420px,100%);height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.pd-art{position:relative}
+.pd-art .art{height:100%;aspect-ratio:auto;min-height:280px}
+.pd-body{padding:26px 26px 24px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.pd-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.pd-body h2{font-size:28px;font-weight:800;line-height:1.1}
+.stars{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.stars svg{width:14px;height:14px;fill:var(--warn)}
+.specs{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0;font-size:14px;border-top:1px solid var(--line);padding-top:12px}
+.specs dt{color:var(--muted)} .specs dd{margin:0;font-weight:500}
+.pd-buy{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pd-buy .btn{flex:1}
+.related{border-top:1px solid var(--line);padding-top:12px}
+.related-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+.rel{border:0;background:none;padding:0;text-align:left;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.rel .art{border-radius:8px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;height:40px}
+.stepper button{border:0;background:none;width:36px;height:100%;display:grid;place-items:center;border-radius:999px}
+.stepper button:disabled{opacity:.35;cursor:not-allowed}
+.stepper .num{min-width:24px;text-align:center;font-weight:600}
+.stepper.sm{height:32px} .stepper.sm button{width:30px}
+.dr-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line)}
+.dr-head h2{font-size:20px}
+.dr-body{flex:1;overflow:auto;padding:8px 18px}
+.dr-foot{border-top:1px solid var(--line);padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.line{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);align-items:center}
+.line:last-child{border-bottom:0}
+.line .art{border-radius:8px;aspect-ratio:1}
+.line-name{font-weight:600;font-size:14.5px;line-height:1.3}
+.line-sub{font-size:12.5px;color:var(--muted)}
+.line-ctl{display:flex;align-items:center;gap:8px;margin-top:6px}
+.line-price{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.remove{border:0;background:none;color:var(--muted);font-size:12.5px;text-decoration:underline;text-underline-offset:2px;padding:2px}
+.ship-meter{font-size:13px;color:var(--muted)}
+.ship-meter .bar{height:6px;border-radius:3px;background:var(--surface-2);margin-top:6px;overflow:hidden}
+.ship-meter .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+.coupon{display:flex;gap:8px}
+.coupon .input{text-transform:uppercase;font-family:var(--f-mono);font-size:14px}
+.applied{display:flex;align-items:center;justify-content:space-between;background:var(--accent-soft);border-radius:var(--r-sm);padding:8px 12px;font-size:13.5px}
+.applied b{font-family:var(--f-mono)}
+.totals{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14px;margin:0}
+.totals dt{color:var(--muted)} .totals dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.totals .disc{color:var(--plum)}
+.totals .grand{font-size:17px;font-weight:700;color:var(--fg);border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
+
+/* Checkout */
+.page{padding-block:26px 50px}
+.back{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:4px 0;color:var(--muted);font-weight:500;margin-bottom:12px}
+.back:hover{color:var(--fg)}
+.co{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:28px;align-items:start}
+.co h1{font-size:30px;font-weight:800;margin-bottom:4px}
+.co-sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:14px;margin-top:16px}
+.co-sec h2{font-size:17px;font-weight:650;display:flex;align-items:center;gap:10px}
+.step-n{width:24px;height:24px;border-radius:50%;background:var(--fg);color:var(--bg);font-size:12px;display:grid;place-items:center;font-family:var(--f-body);font-weight:700}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.opts{display:grid;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent)}
+.opt .t{font-weight:600;font-size:14.5px}
+.opt .d{font-size:13px;color:var(--muted)}
+.opt .r{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.testcard{display:flex;align-items:center;gap:10px;border:1px dashed var(--line);border-radius:var(--r-sm);padding:10px 12px;font-size:13px;color:var(--muted);margin-top:8px}
+.testcard .mono{color:var(--fg)}
+.check{display:flex;gap:10px;align-items:center;font-size:14px}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+.summary{position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:12px}
+.summary h2{font-size:17px}
+.fill-sample{align-self:flex-start;font-size:13px;color:var(--accent);background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:3px;font-weight:600}
+.spinner{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Confirmation & my orders */
+.done{max-width:640px;margin:0 auto;text-align:left}
+.done-mark{width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;margin-bottom:16px}
+.done-mark .ic{width:26px;height:26px;stroke-width:2.4}
+.done h1{font-size:32px;font-weight:800}
+.receipt{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin:20px 0;display:flex;flex-direction:column;gap:12px}
+.receipt-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px}
+.rline{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.done-actions{display:flex;gap:10px;flex-wrap:wrap}
+.olist{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.ocard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;align-items:center}
+.ocard .items{font-size:13.5px;color:var(--muted);grid-column:1/-1}
+
+/* Pills */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st-Pending{background:var(--warn-soft);color:var(--warn)}
+.st-Paid{background:var(--accent-soft);color:var(--accent)}
+.st-Shipped{background:var(--info-soft);color:var(--info)}
+.st-Delivered{background:var(--ok-soft);color:var(--ok)}
+.st-Cancelled{background:var(--bad-soft);color:var(--bad)}
+
+/* Footer */
+.foot{border-top:1px solid var(--line);background:var(--surface)}
+.foot .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;padding-block:28px}
+.foot h3{font-size:18px;margin-bottom:4px}
+.foot p{margin:0;color:var(--muted);font-size:14px}
+.sub-form{display:flex;gap:8px;margin-top:12px}
+
+/* Admin */
+.admin{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 40px)}
+.side{background:var(--surface);border-right:1px solid var(--line);padding:20px 12px;display:flex;flex-direction:column;gap:4px}
+.side .brand{padding:0 8px 16px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:10px;border:0;background:transparent;padding:10px 12px;border-radius:var(--r-sm);font-weight:500;text-align:left;width:100%}
+.nav button:hover{background:var(--surface-2)}
+.nav button[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:650}
+.nav .n{margin-left:auto;font-size:12px;background:var(--warn-soft);color:var(--warn);border-radius:999px;padding:1px 7px;font-weight:700}
+.side-foot{margin-top:auto;font-size:12.5px;color:var(--muted);padding:12px 8px 0;border-top:1px solid var(--line)}
+.main{padding:24px max(16px,env(safe-area-inset-right,0px)) 50px 28px;min-width:0}
+.main-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.main-head h1{font-size:28px;font-weight:800}
+.main-head p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.kpi .k{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.kpi .v{font-family:var(--f-display);font-size:30px;font-weight:650;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kpi .s{font-size:13px;color:var(--muted)}
+.panels{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.box-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+.box-h h2{font-size:16px;font-weight:650}
+.box-h .s{font-size:13px;color:var(--muted)}
+.chart{width:100%;height:auto;display:block}
+.ch-g{stroke:var(--line);stroke-width:1}
+.ch-t{fill:var(--muted);font-size:11px;font-family:var(--f-body)}
+.ch-v{fill:var(--fg);font-size:12px;font-weight:700;font-family:var(--f-body)}
+.ch-b{fill:var(--accent-mid)} .ch-b.today{fill:var(--accent)}
+.ch-b:hover{fill:var(--accent-hover)}
+.bars{display:flex;flex-direction:column;gap:10px}
+.barrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:13.5px}
+.barrow .track{grid-column:1/-1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.barrow .track i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.low-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.low-row:last-child{border-bottom:0}
+.low-row .nm{flex:1;min-width:0}
+.stock-n{font-weight:700;color:var(--warn);font-variant-numeric:tabular-nums}
+.stock-n.zero{color:var(--bad)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface)}
+td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover td{background:var(--surface-2)}
+tr.detail td{background:var(--surface-2);white-space:normal}
+.detail-lines{display:grid;gap:4px;font-size:13.5px;max-width:520px}
+.detail-lines div{display:flex;justify-content:space-between;gap:16px}
+.status-select{padding:5px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:600}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar .search{margin:0;max-width:280px;flex:1 1 200px;background:var(--surface);border:1px solid var(--line)}
+.prod-cell{display:flex;align-items:center;gap:10px}
+.thumb{width:40px;height:40px;border-radius:8px;overflow:hidden;flex:none}
+.thumb .art{aspect-ratio:1;height:100%}
+.cell-input{width:86px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-variant-numeric:tabular-nums}
+.switch{position:relative;width:38px;height:22px;border-radius:11px;background:var(--line);border:0;padding:0;transition:background .15s;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--surface);transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch[aria-checked="true"]{background:var(--accent)}
+.switch[aria-checked="true"]::after{transform:translateX(16px)}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end}
+.stack{display:flex;flex-direction:column;gap:14px}
+.preview-strip{background:var(--accent);color:var(--accent-fg);font-size:13.5px;text-align:center;padding:8px 12px;border-radius:var(--r-sm)}
+.code{font-family:var(--f-mono);font-weight:600;letter-spacing:.03em}
+
+/* Toasts */
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:80;display:flex;flex-direction:column;gap:8px;align-items:center;width:min(440px,calc(100% - 32px));pointer-events:none}
+.toast{background:var(--fg);color:var(--bg);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:var(--shadow);display:flex;gap:10px;align-items:center;animation:pop .2s ease-out}
+.toast .ic{color:var(--accent-mid)}
+@keyframes pop{from{transform:translateY(8px);opacity:.4}to{transform:none;opacity:1}}
+
+@media (max-width:900px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panels{grid-template-columns:minmax(0,1fr)}
+  .co{grid-template-columns:minmax(0,1fr)}
+  .summary{position:static}
+}
+@media (max-width:820px){
+  .admin{grid-template-columns:minmax(0,1fr)}
+  .side{border-right:0;border-bottom:1px solid var(--line);padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px))}
+  .side .brand{padding:0 0 10px}
+  .nav{flex-direction:row;overflow-x:auto;gap:4px}
+  .nav button{width:auto;white-space:nowrap}
+  .side-foot{display:none}
+  .main{padding:20px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+  .modal-panel{grid-template-columns:minmax(0,1fr)}
+  .pd-art .art{min-height:0;aspect-ratio:5/3}
+  .intro{grid-template-columns:minmax(0,1fr);padding-block:22px 12px}
+  .foot .wrap{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:620px){
+  .shop-head .wrap{flex-wrap:wrap}
+  .search{order:3;flex-basis:100%;max-width:none}
+  .head-actions{margin-left:auto}
+  .brand-sub{display:none}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .card-body{padding:12px}
+  .card-title{font-size:15.5px}
+  .card-foot{flex-wrap:wrap}
+  .row2{grid-template-columns:minmax(0,1fr)}
+  .kpi .v{font-size:24px}
+  .pd-body{padding:20px}
+  .sortbox{width:100%}
+  .sortbox .select{flex:1}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+<script>
+(function(){
+const { useState, useEffect, useMemo, useRef } = React;
+const html = htm.bind(React.createElement);
+
+/* ---------- helpers ---------- */
+const DAY = 864e5, SHIP_STD = 6.5, SHIP_EXP = 15, FREE_SHIP = 50;
+const round2 = n => Math.round(n * 100) / 100;
+const money = n => '$' + round2(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
+const fmtDate = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const fmtDT = d => new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const startOfDay = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const STATUSES = ['Pending', 'Paid', 'Shipped', 'Delivered', 'Cancelled'];
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function load(k){ try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function save(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function hashHue(s){ let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
+
+/* ---------- catalog ---------- */
+const CATS = [
+  { id: 'all', name: 'Everything' }, { id: 'green', name: 'Green tea' }, { id: 'oolong', name: 'Oolong' },
+  { id: 'black', name: 'Black tea' }, { id: 'herbal', name: 'Herbal' }, { id: 'teaware', name: 'Teaware' }, { id: 'gifts', name: 'Gift sets' }
+];
+const catName = id => (CATS.find(c => c.id === id) || {}).name || id;
+const isTea = cat => ['green', 'oolong', 'black', 'herbal'].includes(cat);
+const SEED_PRODUCTS = [
+  { id:'p1', sku:'GR-SEN-100', name:'Morning Sencha', cat:'green', price:14, compare:null, stock:42, hue:92, shape:'tin', origin:'Shizuoka, Japan', size:'100 g', spec:'75°C · 1 min · 3 g per cup', desc:'Bright, grassy steamed green tea with a clean, sweet finish. Our everyday cup.', rating:4.7, reviews:128, tags:['bestseller'] },
+  { id:'p2', sku:'GR-JAS-080', name:'Jasmine Pearls', cat:'green', price:22, compare:26, stock:18, hue:58, shape:'jar', origin:'Fujian, China', size:'80 g', spec:'80°C · 2 min · 3 g per cup', desc:'Hand-rolled green tea pearls scented with fresh jasmine blossoms over six nights.', rating:4.9, reviews:86, tags:[] },
+  { id:'p3', sku:'GR-MAT-030', name:'Ceremonial Matcha', cat:'green', price:28, compare:null, stock:6, hue:108, shape:'tin', origin:'Uji, Japan', size:'30 g', spec:'80°C · whisk · 2 g per bowl', desc:'Stone-ground first-flush tencha. Vivid colour, rich umami and a smooth finish.', rating:4.8, reviews:64, tags:['new'] },
+  { id:'p4', sku:'OL-TGY-100', name:'Iron Goddess Oolong', cat:'oolong', price:19, compare:null, stock:27, hue:148, shape:'pouch', origin:'Anxi, China', size:'100 g', spec:'95°C · 1 min · 5 g per pot', desc:'Lightly oxidised Tieguanyin with an orchid aroma. Re-steep it up to six times.', rating:4.6, reviews:51, tags:[] },
+  { id:'p5', sku:'OL-MLK-075', name:'Highland Milk Oolong', cat:'oolong', price:24, compare:null, stock:25, hue:38, shape:'pouch', origin:'Nantou, Taiwan', size:'75 g', spec:'90°C · 1 min · 5 g per pot', desc:'Creamy, buttery high-mountain oolong grown above 1,500 m.', rating:4.8, reviews:73, tags:[] },
+  { id:'p6', sku:'BL-CAM-125', name:'Cameron Highlands Black', cat:'black', price:12, compare:15, stock:60, hue:22, shape:'tin', origin:'Pahang, Malaysia', size:'125 g', spec:'95°C · 4 min · 2.5 g per cup', desc:'Malty, full-bodied black tea from Malaysia’s highlands. Great with milk.', rating:4.5, reviews:142, tags:['bestseller'] },
+  { id:'p7', sku:'BL-ASM-150', name:'Assam Breakfast', cat:'black', price:13, compare:null, stock:34, hue:12, shape:'pouch', origin:'Assam, India', size:'150 g', spec:'98°C · 4 min · 3 g per cup', desc:'Brisk, malty second-flush Assam that stands up to milk and sugar.', rating:4.4, reviews:39, tags:[] },
+  { id:'p8', sku:'BL-LAP-100', name:'Smoky Lapsang', cat:'black', price:16, compare:null, stock:3, hue:2, shape:'tin', origin:'Wuyi, China', size:'100 g', spec:'95°C · 3 min · 2.5 g per cup', desc:'Pine-smoked black tea with a campfire aroma and a sweet, longan-like finish.', rating:4.3, reviews:22, tags:[] },
+  { id:'p9', sku:'HB-HIB-100', name:'Hibiscus Berry Blend', cat:'herbal', price:11, compare:null, stock:48, hue:335, shape:'pouch', origin:'Blended in Penang', size:'100 g', spec:'100°C · 6 min · 3 g per cup', desc:'Tart hibiscus, elderberry and rosehip. Caffeine-free and lovely iced.', rating:4.6, reviews:58, tags:[] },
+  { id:'p10', sku:'HB-LGP-060', name:'Lemongrass Pandan', cat:'herbal', price:10, compare:null, stock:30, hue:78, shape:'jar', origin:'Blended in Penang', size:'60 g', spec:'100°C · 5 min · 2 g per cup', desc:'Fragrant pandan leaf and lemongrass. A calm, caffeine-free evening cup.', rating:4.5, reviews:31, tags:['new'] },
+  { id:'p11', sku:'TW-KYU-350', name:'Stoneware Kyusu Teapot', cat:'teaware', price:48, compare:null, stock:9, hue:200, shape:'pot', origin:'Tokoname, Japan', size:'350 ml', spec:'Side handle · built-in fine mesh', desc:'Side-handled clay teapot with a built-in strainer. Ideal for Japanese green teas.', rating:4.9, reviews:27, tags:[] },
+  { id:'p12', sku:'TW-CEL-2PC', name:'Celadon Cup Pair', cat:'teaware', price:26, compare:null, stock:14, hue:168, shape:'cup', origin:'Jingdezhen, China', size:'2 × 90 ml', spec:'Porcelain · dishwasher safe', desc:'Two hand-glazed celadon cups with a soft jade crackle.', rating:4.7, reviews:19, tags:[] },
+  { id:'p13', sku:'TW-INF-420', name:'Glass Travel Infuser', cat:'teaware', price:21, compare:25, stock:22, hue:192, shape:'jar', origin:'Designed in Kuala Lumpur', size:'420 ml', spec:'Borosilicate · removable steel filter', desc:'Brew loose leaf on the go. The filter lifts out so tea never over-steeps.', rating:4.4, reviews:45, tags:[] },
+  { id:'p14', sku:'GF-DSC-006', name:'Discovery Gift Box', cat:'gifts', price:39, compare:null, stock:12, hue:300, shape:'box', origin:'Six teas, 25 g each', size:'150 g', spec:'Printed brewing guide included', desc:'Six of our favourite teas in a keepsake box. A good first step into loose leaf.', rating:4.8, reviews:66, tags:['bestseller'] },
+  { id:'p15', sku:'GF-MAT-KIT', name:'Matcha Starter Kit', cat:'gifts', price:56, compare:64, stock:7, hue:120, shape:'box', origin:'Bowl, whisk, scoop + 30 g matcha', size:'Kit', spec:'Bamboo chasen · 80-prong', desc:'Everything you need for your first bowl of matcha, with our ceremonial grade tin.', rating:4.7, reviews:24, tags:[] }
+];
+const SEED_COUPONS = [
+  { code:'WELCOME10', type:'percent', value:10, min:0, active:true, uses:37 },
+  { code:'TEA20', type:'percent', value:20, min:60, active:true, uses:12 },
+  { code:'FREESHIP', type:'ship', value:0, min:25, active:true, uses:58 },
+  { code:'MOONCAKE5', type:'fixed', value:5, min:30, active:false, uses:94 }
+];
+function couponRule(c){
+  const r = c.type === 'percent' ? c.value + '% off' : c.type === 'fixed' ? money(c.value) + ' off' : 'Free standard shipping';
+  return c.min > 0 ? r + ' on orders over ' + money(c.min) : r;
+}
+
+/* ---------- pricing ---------- */
+function quote(cart, products, coupons, code, method){
+  method = method || 'standard';
+  const lines = cart.map(l => { const p = products.find(x => x.id === l.id); return p ? { id: l.id, p, qty: l.qty } : null; }).filter(Boolean);
+  const subtotal = round2(sum(lines, l => l.p.price * l.qty));
+  let shipping = subtotal === 0 ? 0 : method === 'express' ? SHIP_EXP : (subtotal >= FREE_SHIP ? 0 : SHIP_STD);
+  let discount = 0, couponError = null, coupon = null;
+  if (code) {
+    const c = coupons.find(x => x.code === code);
+    if (!c || !c.active) couponError = 'That code isn’t valid or the offer has ended.';
+    else if (subtotal < c.min) couponError = 'Add ' + money(c.min - subtotal) + ' more to use ' + c.code + '.';
+    else if (c.type === 'ship' && method === 'express') couponError = c.code + ' covers standard delivery only.';
+    else {
+      coupon = c;
+      if (c.type === 'percent') discount = round2(subtotal * c.value / 100);
+      else if (c.type === 'fixed') discount = Math.min(c.value, subtotal);
+      else shipping = 0;
+    }
+  }
+  return { lines, subtotal, discount, shipping, total: round2(subtotal - discount + shipping), coupon, couponError };
+}
+
+/* ---------- sample orders ---------- */
+const CUSTOMERS = ['Aisha Rahman','Daniel Tan','Mei Ling Wong','Priya Nair','Hafiz Ismail','Sophie Clarke','Kenji Mori','Nurul Huda','Marcus Lee','Elena Rossi','Arjun Patel','Siti Zulaikha','Lucas Martin','Grace Lim','Omar Haddad','Chloe Ng','Ravi Kumar','Hannah Becker'];
+const CITIES = [['Kuala Lumpur','Malaysia'],['George Town','Malaysia'],['Singapore','Singapore'],['Johor Bahru','Malaysia'],['Ipoh','Malaysia'],['Sydney','Australia'],['London','United Kingdom'],['Kota Kinabalu','Malaysia'],['Melaka','Malaysia'],['Toronto','Canada']];
+function seedOrders(products){
+  const rnd = mulberry32(20261020), now = Date.now(), today = startOfDay(now).getTime();
+  const weights = products.map(p => (p.tags.includes('bestseller') ? 3 : 1) * (p.price > 40 ? 0.6 : 1));
+  const wsum = sum(weights, w => w);
+  const pick = () => { let r = rnd() * wsum; for (let i = 0; i < products.length; i++) { r -= weights[i]; if (r <= 0) return products[i]; } return products[0]; };
+  const out = [];
+  for (let d = 29; d >= 0; d--) {
+    const dow = new Date(today - d * DAY).getDay();
+    const n = Math.floor(rnd() * 3) + (dow === 0 || dow === 6 ? 1 : 0) + (d < 12 ? 1 : 0);
+    for (let k = 0; k < n; k++) {
+      let t = today - d * DAY + (8 + rnd() * 13) * 36e5;
+      if (t > now) t = now - rnd() * 3 * 36e5;
+      const cart = [];
+      const items = 1 + Math.floor(rnd() * 3);
+      for (let i = 0; i < items; i++) { const p = pick(); if (!cart.find(l => l.id === p.id)) cart.push({ id: p.id, qty: rnd() < 0.75 ? 1 : 2 }); }
+      const codes = [null, null, null, 'WELCOME10', 'FREESHIP', 'TEA20'];
+      let q = quote(cart, products, SEED_COUPONS, codes[Math.floor(rnd() * codes.length)]);
+      if (q.couponError) q = quote(cart, products, SEED_COUPONS, null);
+      const pr = rnd(), payment = pr < 0.68 ? 'Card' : pr < 0.9 ? 'PayPal' : 'COD';
+      const age = (now - t) / DAY;
+      let status = age >= 7 ? (rnd() < 0.07 ? 'Cancelled' : 'Delivered') : age >= 4 ? (rnd() < 0.5 ? 'Delivered' : 'Shipped') : age >= 1 ? (rnd() < 0.5 ? 'Shipped' : 'Paid') : (payment === 'COD' ? 'Pending' : 'Paid');
+      if (payment === 'COD' && status === 'Paid') status = 'Pending';
+      const city = CITIES[Math.floor(rnd() * CITIES.length)], name = CUSTOMERS[Math.floor(rnd() * CUSTOMERS.length)];
+      out.push({ date: new Date(t).toISOString(), customer: name, email: name.toLowerCase().replace(/[^a-z]+/g, '.') + '@example.com', city: city[0], country: city[1],
+        lines: q.lines.map(l => ({ id: l.id, name: l.p.name, price: l.p.price, qty: l.qty })), subtotal: q.subtotal, discount: q.discount, shipping: q.shipping, total: q.total,
+        coupon: q.coupon ? q.coupon.code : null, payment, status, delivery: 'standard', mine: false });
+    }
+  }
+  out.sort((a, b) => a.date.localeCompare(b.date));
+  out.forEach((o, i) => { o.id = 'LL-' + (1001 + i); });
+  return out;
+}
+function freshStore(){
+  const products = SEED_PRODUCTS.map(p => Object.assign({}, p, { active: true }));
+  const orders = seedOrders(products);
+  return { v: 1, products, orders, coupons: SEED_COUPONS.map(c => Object.assign({}, c)),
+    announcement: 'Free shipping on orders over $50 · New this month: Ceremonial Matcha from Uji', subscribers: 214, nextNo: 1001 + orders.length };
+}
+
+/* ---------- small components ---------- */
+const ICONS = {
+  search: html`<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>`,
+  bag: html`<path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>`,
+  x: html`<path d="M6 6l12 12M18 6L6 18"/>`,
+  plus: html`<path d="M12 5v14M5 12h14"/>`,
+  minus: html`<path d="M5 12h14"/>`,
+  grid: html`<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>`,
+  list: html`<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>`,
+  box: html`<path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>`,
+  tag: html`<path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="7.5" r="1.3"/>`,
+  check: html`<path d="M5 12.5l4.5 4.5L19 7.5"/>`,
+  back: html`<path d="M15 6l-6 6 6 6"/>`,
+  receipt: html`<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/>`,
+  store: html`<path d="M4 10v10h16V10"/><path d="M3 10l2-6h14l2 6"/><path d="M9.5 20v-5h5v5"/>`,
+  chart: html`<path d="M3 20h18M6.5 20v-6M11.5 20V6M16.5 20v-9"/>`,
+  lock: html`<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>`,
+  bell: html`<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4l2-2z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>`,
+  send: html`<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4 18-7z"/>`
+};
+const Icon = ({ n }) => html`<svg className="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
+const Logo = () => html`<svg className="logo" viewBox="0 0 32 32" aria-hidden="true">
+  <rect className="lg-a" x="11" y="2.5" width="10" height="3" rx="1.5"/><path className="lg-b" d="M8.5 7.5h15L22 25H10z"/>
+  <path className="lg-c" d="M16 10.5c3.4 2.4 3.4 7.6 0 11.2-3.4-3.6-3.4-8.8 0-11.2z"/><rect className="lg-a" x="11" y="26" width="10" height="3" rx="1.5"/></svg>`;
+const Brand = ({ sub, onClick }) => html`<button className="brand" onClick=${onClick} aria-label="Leaf and Lantern home">
+  <${Logo}/><span><div className="brand-name">Leaf &amp; Lantern</div><div className="brand-sub">${sub}</div></span></button>`;
+
+function Art({ p, steam }){
+  const s = p.shape;
+  let body;
+  if (s === 'tin') body = html`<rect className="o2" x="63" y="36" width="74" height="15" rx="3"/><rect className="o1" x="66" y="49" width="68" height="89" rx="4"/>
+    <rect className="lb" x="66" y="72" width="68" height="38"/><rect className="o2" x="84" y="85" width="32" height="12" rx="6"/>`;
+  else if (s === 'pouch') body = html`<path className="o1" d="M70 38H130L139 138H61Z"/><rect className="o2" x="70" y="38" width="60" height="11"/>
+    <rect className="lb" x="78" y="76" width="44" height="36" rx="3"/><circle className="o2" cx="100" cy="94" r="7"/>`;
+  else if (s === 'jar') body = html`<rect className="o2" x="75" y="34" width="50" height="15" rx="3"/><rect className="gl" x="68" y="47" width="64" height="91" rx="13"/>
+    <rect className="o1" x="75" y="82" width="50" height="50" rx="9"/><rect className="lb" x="81" y="60" width="38" height="14" rx="2"/>`;
+  else if (s === 'cup') body = html`<ellipse className="o2" cx="100" cy="133" rx="58" ry="8"/><path className="ln" d="M133 86q20 1 14 19q-4 9-17 9"/>
+    <path className="o1" d="M64 76H136Q134 128 100 128Q66 128 64 76Z"/><ellipse className="lb" cx="100" cy="76" rx="36" ry="6"/>
+    <path className="st" d="M88 60q-6-8 0-16M100 58q-6-8 0-16M112 60q-6-8 0-16"/>`;
+  else if (s === 'pot') body = html`<rect className="o2" x="26" y="92" width="30" height="11" rx="5.5"/><path className="o1" d="M139 95L171 80L167 91L141 112Z"/>
+    <ellipse className="o1" cx="100" cy="100" rx="45" ry="37"/><rect className="o2" x="81" y="57" width="38" height="11" rx="4"/><circle className="o2" cx="100" cy="53" r="5"/>
+    <ellipse className="lb" cx="100" cy="110" rx="31" ry="4"/>`;
+  else body = html`<rect className="o1" x="56" y="62" width="88" height="76" rx="4"/><rect className="o2" x="50" y="49" width="100" height="21" rx="3"/>
+    <rect className="lb" x="94" y="49" width="12" height="89"/><path className="lb" d="M100 50C84 28 68 40 87 50ZM100 50C116 28 132 40 113 50Z"/>`;
+  return html`<svg className="art" viewBox="0 0 200 160" style=${{ '--h': p.hue }} role="img" aria-label=${p.name}>
+    <rect className="bg" width="200" height="160"/><ellipse className="sh" cx="100" cy="140" rx="54" ry="7"/>${body}</svg>`;
+}
+function Stepper({ value, min, max, onChange, label, small }){
+  min = min == null ? 1 : min;
+  return html`<div className=${'stepper' + (small ? ' sm' : '')} role="group" aria-label=${label}>
+    <button type="button" onClick=${() => onChange(Math.max(min, value - 1))} disabled=${value <= min} aria-label="Decrease quantity"><${Icon} n="minus"/></button>
+    <span className="num" aria-live="polite">${value}</span>
+    <button type="button" onClick=${() => onChange(Math.min(max, value + 1))} disabled=${value >= max} aria-label="Increase quantity"><${Icon} n="plus"/></button></div>`;
+}
+function Overlay({ onClose, kind, label, children }){
+  useEffect(() => {
+    const k = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', k);
+    const prev = document.body.style.overflow; document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', k); document.body.style.overflow = prev; };
+  }, []);
+  return html`<div className=${'overlay ' + kind} onMouseDown=${e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className=${'panel ' + kind + '-panel'} role="dialog" aria-modal="true" aria-label=${label}>${children}</div></div>`;
+}
+const Pill = ({ s }) => html`<span className=${'pill st-' + s}>${s}</span>`;
+const Stars = ({ r, n }) => html`<span className="stars"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>${r.toFixed(1)} · ${n} reviews</span>`;
+const Totals = ({ q }) => html`<dl className="totals">
+  <dt>Subtotal</dt><dd>${money(q.subtotal)}</dd>
+  ${q.discount > 0 ? html`<dt className="disc">Discount (${q.coupon.code})</dt><dd className="disc">−${money(q.discount)}</dd>` : null}
+  <dt>Shipping</dt><dd>${q.shipping === 0 ? (q.subtotal ? 'Free' : '—') : money(q.shipping)}</dd>
+  <dt className="grand">Total</dt><dd className="grand">${money(q.total)}</dd></dl>`;
+
+/* ---------- storefront ---------- */
+function ProductCard({ p, onOpen, onAdd }){
+  const off = p.compare ? Math.round((1 - p.price / p.compare) * 100) : 0;
+  const out = p.stock <= 0;
+  return html`<article className="card">
+    <button className="card-art" onClick=${() => onOpen(p)} aria-label=${'View ' + p.name}>
+      <${Art} p=${p}/>
+      <span className="badges">
+        ${off ? html`<span className="badge sale">−${off}%</span>` : null}
+        ${p.tags.includes('new') ? html`<span className="badge new">New</span>` : null}
+        ${p.tags.includes('bestseller') && !off ? html`<span className="badge">Bestseller</span>` : null}
+        ${out ? html`<span className="badge out">Sold out</span>` : p.stock <= 8 ? html`<span className="badge low">Only ${p.stock} left</span>` : null}
+      </span>
+    </button>
+    <div className="card-body">
+      <div className="card-meta">${catName(p.cat)} · ${p.size}</div>
+      <h3 className="card-title"><button className="linklike" onClick=${() => onOpen(p)}>${p.name}</button></h3>
+      <div className="card-origin">${p.origin}</div>
+      <div className="card-foot">
+        <span className="price">${money(p.price)}${p.compare ? html`<s>${money(p.compare)}</s>` : null}</span>
+        <button className=${'btn btn-sm' + (out ? '' : ' btn-accent')} disabled=${out} onClick=${() => onAdd(p, 1)}>${out ? 'Sold out' : html`<${Icon} n="plus"/>Add`}</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+function ProductModal({ p, products, inCart, onAdd, onClose, onOpen }){
+  const [qty, setQty] = useState(1);
+  useEffect(() => setQty(1), [p.id]);
+  const left = Math.max(0, p.stock - inCart);
+  const related = products.filter(x => x.active && x.cat === p.cat && x.id !== p.id).slice(0, 3);
+  return html`<${Overlay} kind="modal" label=${p.name} onClose=${onClose}>
+    <div className="pd-art"><${Art} p=${p}/></div>
+    <div className="pd-body">
+      <div className="pd-top">
+        <div><div className="card-meta">${catName(p.cat)} · <span className="mono">${p.sku}</span></div><h2>${p.name}</h2></div>
+        <button className="iconbtn" onClick=${onClose} aria-label="Close"><${Icon} n="x"/></button>
+      </div>
+      <${Stars} r=${p.rating} n=${p.reviews}/>
+      <div className="price" style=${{ fontSize: '22px' }}>${money(p.price)}${p.compare ? html`<s>${money(p.compare)}</s>` : null}</div>
+      <p style=${{ margin: 0 }}>${p.desc}</p>
+      <dl className="specs">
+        <dt>${isTea(p.cat) ? 'Origin' : 'Made in'}</dt><dd>${p.origin}</dd>
+        <dt>Size</dt><dd>${p.size}</dd>
+        <dt>${isTea(p.cat) ? 'Brew guide' : 'Details'}</dt><dd>${p.spec}</dd>
+        <dt>Stock</dt><dd>${p.stock <= 0 ? 'Sold out' : p.stock <= 8 ? 'Only ' + p.stock + ' left' : 'In stock'}</dd>
+      </dl>
+      <div className="pd-buy">
+        ${left > 0 ? html`<${Stepper} value=${Math.min(qty, left)} max=${left} onChange=${setQty} label="Quantity"/>` : null}
+        <button className="btn btn-accent" disabled=${left <= 0} onClick=${() => { onAdd(p, Math.min(qty, left)); onClose(); }}>
+          ${p.stock <= 0 ? 'Sold out' : left <= 0 ? 'All stock is in your cart' : html`<${Icon} n="bag"/>Add to cart · ${money(p.price * Math.min(qty, left))}`}</button>
+      </div>
+      ${related.length ? html`<div className="related"><div className="label">More ${catName(p.cat).toLowerCase()}</div>
+        <div className="related-row">${related.map(r => html`<button key=${r.id} className="rel" onClick=${() => onOpen(r)}><${Art} p=${r}/><span>${r.name}</span><span className="muted">${money(r.price)}</span></button>`)}</div></div>` : null}
+    </div>
+  <//>`;
+}
+
+function CartDrawer({ q, products, code, setCode, onQty, onRemove, onClose, onCheckout, coupons }){
+  const [input, setInput] = useState('');
+  const [err, setErr] = useState('');
+  const apply = e => {
+    e.preventDefault();
+    const c = input.trim().toUpperCase();
+    if (!c) return;
+    const t = quote(q.lines.map(l => ({ id: l.id, qty: l.qty })), products, coupons, c);
+    if (t.couponError) { setErr(t.couponError); return; }
+    setCode(c); setInput(''); setErr('');
+  };
+  const toFree = FREE_SHIP - q.subtotal;
+  return html`<${Overlay} kind="drawer" label="Your cart" onClose=${onClose}>
+    <div className="dr-head"><h2>Your cart</h2><button className="iconbtn" onClick=${onClose} aria-label="Close cart"><${Icon} n="x"/></button></div>
+    ${q.lines.length === 0 ? html`<div className="dr-body"><div className="empty" style=${{ marginTop: '20px' }}><h3>Your cart is empty</h3>Add a tea or two and it will show up here.</div></div>` : html`
+    <div className="dr-body">
+      ${q.lines.map(l => html`<div className="line" key=${l.id}>
+        <${Art} p=${l.p}/>
+        <div style=${{ minWidth: 0 }}>
+          <div className="line-name">${l.p.name}</div><div className="line-sub">${l.p.size} · ${money(l.p.price)} each</div>
+          <div className="line-ctl"><${Stepper} small value=${l.qty} max=${l.p.stock} onChange=${v => onQty(l.id, v)} label=${'Quantity of ' + l.p.name}/>
+            <button className="remove" onClick=${() => onRemove(l.id)}>Remove</button></div>
+        </div>
+        <div className="line-price">${money(l.p.price * l.qty)}</div>
+      </div>`)}
+    </div>
+    <div className="dr-foot">
+      <div className="ship-meter">${toFree > 0 ? html`Add <b>${money(toFree)}</b> more for free shipping` : html`<b>You’ve unlocked free shipping</b>`}
+        <div className="bar"><i style=${{ width: Math.min(100, q.subtotal / FREE_SHIP * 100) + '%' }}></i></div></div>
+      ${code && !q.couponError ? html`<div className="applied"><span><b>${code}</b> · ${couponRule(q.coupon)}</span><button className="remove" onClick=${() => setCode(null)}>Remove</button></div>` : html`
+        <form className="coupon" onSubmit=${apply}>
+          <label htmlFor="coupon-input" className="sr">Discount code</label>
+          <input id="coupon-input" className="input" placeholder="Discount code" value=${input} onChange=${e => { setInput(e.target.value); setErr(''); }}/>
+          <button className="btn" type="submit">Apply</button></form>`}
+      ${err ? html`<div className="err">${err}</div>` : code && q.couponError ? html`<div className="err">${q.couponError}</div>` : null}
+      <${Totals} q=${q}/>
+      <button className="btn btn-accent btn-block" onClick=${onCheckout}><${Icon} n="lock"/>Checkout · ${money(q.total)}</button>
+    </div>`}
+  <//>`;
+}
+
+const EMPTY_FORM = { email: '', name: '', address: '', city: '', postcode: '', country: 'Malaysia', delivery: 'standard', payment: 'card', offers: true };
+const SAMPLE_FORM = { email: 'nadia.hassan@example.com', name: 'Nadia Hassan', address: '18 Jalan Telawi 3, Bangsar', city: 'Kuala Lumpur', postcode: '59100', country: 'Malaysia', delivery: 'standard', payment: 'card', offers: true };
+function Checkout({ cart, products, coupons, code, setCode, onBack, onPlace }){
+  const [f, setF] = useState(EMPTY_FORM);
+  const [errs, setErrs] = useState({});
+  const [busy, setBusy] = useState(false);
+  const q = quote(cart, products, coupons, code, f.delivery);
+  const set = k => e => { const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value; setF(s => Object.assign({}, s, { [k]: v })); setErrs(s => Object.assign({}, s, { [k]: null })); };
+  const submit = e => {
+    e.preventDefault();
+    const er = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) er.email = 'Enter an email like name@example.com.';
+    ['name', 'address', 'city'].forEach(k => { if (!f[k].trim()) er[k] = 'This field is required.'; });
+    if (!/^[A-Za-z0-9 -]{3,10}$/.test(f.postcode.trim())) er.postcode = 'Enter a valid postcode.';
+    setErrs(er);
+    if (Object.keys(er).length) { const first = document.getElementById('co-' + Object.keys(er)[0]); if (first) first.focus(); return; }
+    setBusy(true);
+    setTimeout(() => onPlace(f, q), 1300);
+  };
+  const F = (k, label, props) => html`<div className=${'field' + (errs[k] ? ' has-err' : '')}>
+    <label htmlFor=${'co-' + k}>${label}</label>
+    <input id=${'co-' + k} className="input" value=${f[k]} onChange=${set(k)} aria-invalid=${!!errs[k]} ...${props || {}}/>
+    ${errs[k] ? html`<div className="err">${errs[k]}</div>` : null}</div>`;
+  if (!q.lines.length) return html`<div className="page wrap gutter"><button className="back" onClick=${onBack}><${Icon} n="back"/>Back to shop</button>
+    <div className="empty"><h3>Nothing to check out yet</h3>Your cart is empty.</div></div>`;
+  return html`<div className="page gutter"><div className="wrap">
+    <button className="back" onClick=${onBack}><${Icon} n="back"/>Back to shop</button>
+    <form className="co" onSubmit=${submit} noValidate>
+      <div>
+        <h1>Checkout</h1>
+        <button type="button" className="fill-sample" onClick=${() => { setF(SAMPLE_FORM); setErrs({}); }}>Fill with sample details</button>
+        <section className="co-sec"><h2><span className="step-n">1</span>Contact</h2>
+          ${F('email', 'Email', { type: 'email', autoComplete: 'email', placeholder: 'you@example.com' })}
+          <label className="check"><input type="checkbox" id="co-offers" checked=${f.offers} onChange=${set('offers')}/>Email me new teas and offers</label>
+        </section>
+        <section className="co-sec"><h2><span className="step-n">2</span>Shipping address</h2>
+          ${F('name', 'Full name', { autoComplete: 'name' })}
+          ${F('address', 'Address', { autoComplete: 'street-address' })}
+          <div className="row2">${F('city', 'City', { autoComplete: 'address-level2' })}${F('postcode', 'Postcode', { autoComplete: 'postal-code' })}</div>
+          <div className="field"><label htmlFor="co-country">Country</label>
+            <select id="co-country" className="select" value=${f.country} onChange=${set('country')}>
+              ${['Malaysia','Singapore','Australia','United Kingdom','United States','Canada'].map(c => html`<option key=${c}>${c}</option>`)}</select></div>
+          <div className="opts" role="radiogroup" aria-label="Delivery">
+            <label className="opt"><input type="radio" name="delivery" checked=${f.delivery === 'standard'} onChange=${() => setF(s => Object.assign({}, s, { delivery: 'standard' }))}/>
+              <span><div className="t">Standard</div><div className="d">3–5 business days · free over ${money(FREE_SHIP)}</div></span>
+              <span className="r">${quote(cart, products, coupons, code, 'standard').shipping === 0 ? 'Free' : money(SHIP_STD)}</span></label>
+            <label className="opt"><input type="radio" name="delivery" checked=${f.delivery === 'express'} onChange=${() => setF(s => Object.assign({}, s, { delivery: 'express' }))}/>
+              <span><div className="t">Express</div><div className="d">1–2 business days, tracked</div></span><span className="r">${money(SHIP_EXP)}</span></label>
+          </div>
+        </section>
+        <section className="co-sec"><h2><span className="step-n">3</span>Payment</h2>
+          <div className="opts" role="radiogroup" aria-label="Payment method">
+            ${[['card', 'Credit or debit card', 'Processed by Stripe'], ['paypal', 'PayPal', 'You’ll approve the payment in PayPal'], ['cod', 'Cash on delivery', 'Pay the courier when your order arrives']].map(o => html`
+              <label className="opt" key=${o[0]}><input type="radio" name="payment" checked=${f.payment === o[0]} onChange=${() => setF(s => Object.assign({}, s, { payment: o[0] }))}/>
+                <span style=${{ flex: 1 }}><div className="t">${o[1]}</div><div className="d">${o[2]}</div>
+                ${o[0] === 'card' && f.payment === 'card' ? html`<div className="testcard"><${Icon} n="lock"/><span>Test mode: the demo uses Stripe’s test card <span className="mono">4242 4242 4242 4242</span>. No real card is charged.</span></div>` : null}
+                </span></label>`)}
+          </div>
+        </section>
+      </div>
+      <aside className="summary" aria-label="Order summary">
+        <h2>Order summary</h2>
+        ${q.lines.map(l => html`<div className="rline" key=${l.id}><span>${l.qty} × ${l.p.name}</span><span className="tab">${money(l.p.price * l.qty)}</span></div>`)}
+        ${code ? (q.couponError ? html`<div className="err">${q.couponError} <button type="button" className="remove" onClick=${() => setCode(null)}>Remove code</button></div>` : html`<div className="applied"><span><b>${code}</b> applied</span><button type="button" className="remove" onClick=${() => setCode(null)}>Remove</button></div>`) : null}
+        <${Totals} q=${q}/>
+        <button className="btn btn-accent btn-block" type="submit" disabled=${busy}>
+          ${busy ? html`<span className="spinner"></span>Processing payment…` : html`<${Icon} n="lock"/>Place order · ${money(q.total)}`}</button>
+        <div className="hint">Demo store: no money is taken and nothing is shipped.</div>
+      </aside>
+    </form>
+  </div></div>`;
+}
+
+function Confirmation({ order, onShop, onAdmin }){
+  return html`<div className="page gutter"><div className="done">
+    <div className="done-mark"><${Icon} n="check"/></div>
+    <h1>Thanks, ${order.customer.split(' ')[0]}. Your order is in.</h1>
+    <p className="muted">Order <b className="mono">${order.id}</b> · A confirmation email would go to ${order.email}.</p>
+    <div className="receipt">
+      <div className="receipt-head"><span>${fmtDT(order.date)}</span><${Pill} s=${order.status}/></div>
+      ${order.lines.map(l => html`<div className="rline" key=${l.id}><span>${l.qty} × ${l.name}</span><span className="tab">${money(l.price * l.qty)}</span></div>`)}
+      <${Totals} q=${{ subtotal: order.subtotal, discount: order.discount, shipping: order.shipping, total: order.total, coupon: { code: order.coupon } }}/>
+      <div className="hint">Paid by ${order.payment === 'COD' ? 'cash on delivery' : order.payment} · ${order.delivery === 'express' ? 'Express' : 'Standard'} delivery to ${order.city}, ${order.country}</div>
+    </div>
+    <div className="done-actions"><button className="btn btn-accent" onClick=${onShop}>Continue shopping</button>
+      <button className="btn" onClick=${onAdmin}><${Icon} n="chart"/>See it in the admin dashboard</button></div>
+  </div></div>`;
+}
+
+function MyOrders({ orders, onBack }){
+  const mine = orders.filter(o => o.mine).slice().reverse();
+  return html`<div className="page gutter"><div className="wrap" style=${{ maxWidth: '760px' }}>
+    <button className="back" onClick=${onBack}><${Icon} n="back"/>Back to shop</button>
+    <h1 style=${{ fontSize: '30px', fontWeight: 800 }}>My orders</h1>
+    ${mine.length === 0 ? html`<div className="empty" style=${{ marginTop: '16px' }}><h3>No orders yet</h3>Orders you place in this demo appear here, with their status from the admin side.</div>` : html`
+      <div className="olist">${mine.map(o => html`<div className="ocard" key=${o.id}>
+        <div><b className="mono">${o.id}</b> <span className="muted">· ${fmtDT(o.date)}</span></div><${Pill} s=${o.status}/>
+        <div className="items">${o.lines.map(l => l.qty + ' × ' + l.name).join(', ')} · <b style=${{ color: 'var(--fg)' }}>${money(o.total)}</b></div></div>`)}</div>`}
+  </div></div>`;
+}
+
+function Shop({ store, setStore, cart, setCart, code, setCode, toast, goAdmin }){
+  const [cat, setCat] = useState('all');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState('featured');
+  const [page, setPage] = useState('browse');
+  const [open, setOpen] = useState(null);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [lastOrder, setLastOrder] = useState(null);
+  const [subEmail, setSubEmail] = useState('');
+  const [subErr, setSubErr] = useState('');
+  const products = store.products;
+  const live = products.filter(p => p.active);
+  const q = quote(cart, products, store.coupons, code);
+  const count = sum(cart, l => l.qty);
+  const counts = useMemo(() => { const m = { all: live.length }; live.forEach(p => { m[p.cat] = (m[p.cat] || 0) + 1; }); return m; }, [products]);
+  const shown = useMemo(() => {
+    const s = query.trim().toLowerCase();
+    let list = live.filter(p => (cat === 'all' || p.cat === cat) && (!s || (p.name + ' ' + p.origin + ' ' + catName(p.cat) + ' ' + p.desc).toLowerCase().includes(s)));
+    if (sort === 'low') list = list.slice().sort((a, b) => a.price - b.price);
+    if (sort === 'high') list = list.slice().sort((a, b) => b.price - a.price);
+    if (sort === 'rated') list = list.slice().sort((a, b) => b.rating - a.rating);
+    return list;
+  }, [products, cat, query, sort]);
+  const top = () => { try { window.scrollTo({ top: 0 }); } catch (e) {} };
+
+  const addToCart = (p, qty) => {
+    const ex = cart.find(l => l.id === p.id), cur = ex ? ex.qty : 0, n = Math.min(p.stock, cur + qty);
+    if (n === cur) { toast('Only ' + p.stock + ' of ' + p.name + ' in stock'); return; }
+    setCart(ex ? cart.map(l => l.id === p.id ? { id: l.id, qty: n } : l) : cart.concat([{ id: p.id, qty: n }]));
+    toast('Added ' + (n - cur > 1 ? (n - cur) + ' × ' : '') + p.name + ' to your cart');
+  };
+  const place = (f, qq) => {
+    const order = { id: 'LL-' + store.nextNo, date: new Date().toISOString(), customer: f.name.trim(), email: f.email.trim(), city: f.city.trim(), country: f.country,
+      lines: qq.lines.map(l => ({ id: l.id, name: l.p.name, price: l.p.price, qty: l.qty })), subtotal: qq.subtotal, discount: qq.discount, shipping: qq.shipping, total: qq.total,
+      coupon: qq.coupon ? qq.coupon.code : null, payment: { card: 'Card', paypal: 'PayPal', cod: 'COD' }[f.payment], status: f.payment === 'cod' ? 'Pending' : 'Paid', delivery: f.delivery, mine: true };
+    setStore(s => Object.assign({}, s, { nextNo: s.nextNo + 1, orders: s.orders.concat([order]),
+      products: s.products.map(p => { const l = order.lines.find(x => x.id === p.id); return l ? Object.assign({}, p, { stock: Math.max(0, p.stock - l.qty) }) : p; }),
+      coupons: s.coupons.map(c => c.code === order.coupon ? Object.assign({}, c, { uses: c.uses + 1 }) : c),
+      subscribers: s.subscribers + (f.offers ? 1 : 0) }));
+    setCart([]); setCode(null); setLastOrder(order); setPage('done'); top();
+    toast('Order ' + order.id + ' placed');
+  };
+  const subscribe = e => {
+    e.preventDefault();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subEmail)) { setSubErr('Enter an email like name@example.com.'); return; }
+    setStore(s => Object.assign({}, s, { subscribers: s.subscribers + 1 }));
+    setSubEmail(''); setSubErr(''); toast('Subscribed. Watch your inbox for new teas.');
+  };
+
+  return html`<div>
+    <header className="shop-head gutter"><div className="wrap">
+      <${Brand} sub="Tea & teaware · Penang" onClick=${() => { setPage('browse'); top(); }}/>
+      <label className="search"><${Icon} n="search"/><span className="sr">Search products</span>
+        <input id="shop-search" type="search" placeholder="Search teas, origins, teaware" value=${query} onChange=${e => { setQuery(e.target.value); setPage('browse'); }}/></label>
+      <div className="head-actions">
+        <button className="iconbtn" onClick=${() => { setPage('orders'); top(); }} aria-label="My orders" title="My orders"><${Icon} n="receipt"/></button>
+        <button className="iconbtn" onClick=${() => setCartOpen(true)} aria-label=${'Cart, ' + count + ' items'} title="Cart"><${Icon} n="bag"/>${count ? html`<span className="count">${count}</span>` : null}</button>
+      </div>
+    </div></header>
+    ${store.announcement.trim() ? html`<div className="promo-strip gutter"><div className="wrap">${store.announcement}</div></div>` : null}
+
+    ${page === 'browse' ? html`<main className="gutter"><div className="wrap">
+      <section className="intro">
+        <div><h1>Single-origin teas, packed fresh every week.</h1>
+          <p>Small-batch green, oolong and black teas from growers we know by name, plus the teaware to brew them well.</p></div>
+        ${store.coupons.find(c => c.code === 'WELCOME10' && c.active) ? html`<div className="offer"><${Icon} n="tag"/><div className="t">New here? Use <b>WELCOME10</b> at checkout for 10% off your first order.</div></div>` : null}
+      </section>
+      <div className="filters">
+        <div className="chips" role="group" aria-label="Category">${CATS.filter(c => c.id === 'all' || counts[c.id]).map(c => html`
+          <button key=${c.id} className="chip" aria-pressed=${cat === c.id} onClick=${() => setCat(c.id)}>${c.name}<span className="n">${counts[c.id] || 0}</span></button>`)}</div>
+        <label className="sortbox" htmlFor="sort">Sort
+          <select id="sort" className="select" value=${sort} onChange=${e => setSort(e.target.value)}>
+            <option value="featured">Featured</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option><option value="rated">Top rated</option></select></label>
+      </div>
+      ${shown.length ? html`<div className="grid">${shown.map(p => html`<${ProductCard} key=${p.id} p=${p} onOpen=${setOpen} onAdd=${addToCart}/>`)}</div>` :
+        html`<div className="empty"><h3>No products match “${query}”</h3>Try another word, or <button className="linklike" style=${{ color: 'var(--accent)', fontWeight: 600 }} onClick=${() => { setQuery(''); setCat('all'); }}>clear the filters</button>.</div>`}
+    </div></main>` : null}
+    ${page === 'checkout' ? html`<${Checkout} cart=${cart} products=${products} coupons=${store.coupons} code=${code} setCode=${setCode} onBack=${() => setPage('browse')} onPlace=${place}/>` : null}
+    ${page === 'done' && lastOrder ? html`<${Confirmation} order=${store.orders.find(o => o.id === lastOrder.id) || lastOrder} onShop=${() => { setPage('browse'); top(); }} onAdmin=${goAdmin}/>` : null}
+    ${page === 'orders' ? html`<${MyOrders} orders=${store.orders} onBack=${() => setPage('browse')}/>` : null}
+
+    <footer className="foot gutter"><div className="wrap">
+      <div><h3>New teas, first</h3><p>One short email when a new harvest lands. Unsubscribe any time.</p>
+        <form className="sub-form" onSubmit=${subscribe}><label htmlFor="sub-email" className="sr">Email</label>
+          <input id="sub-email" className="input" type="email" placeholder="you@example.com" value=${subEmail} onChange=${e => { setSubEmail(e.target.value); setSubErr(''); }}/>
+          <button className="btn btn-accent" type="submit"><${Icon} n="bell"/>Subscribe</button></form>
+        ${subErr ? html`<div className="err" style=${{ marginTop: '6px' }}>${subErr}</div>` : null}</div>
+      <div><h3>About this demo</h3><p>Leaf & Lantern is a fictional shop built to demonstrate an e-commerce flow: catalog, search, cart, coupons, checkout, order tracking and an admin dashboard. Products, customers and payments are simulated.</p></div>
+    </div></footer>
+
+    ${open ? html`<${ProductModal} p=${products.find(p => p.id === open.id) || open} products=${products} inCart=${(cart.find(l => l.id === open.id) || { qty: 0 }).qty} onAdd=${addToCart} onClose=${() => setOpen(null)} onOpen=${setOpen}/>` : null}
+    ${cartOpen ? html`<${CartDrawer} q=${q} products=${products} coupons=${store.coupons} code=${code} setCode=${setCode}
+      onQty=${(id, v) => setCart(cart.map(l => l.id === id ? { id, qty: v } : l))} onRemove=${id => setCart(cart.filter(l => l.id !== id))}
+      onClose=${() => setCartOpen(false)} onCheckout=${() => { setCartOpen(false); setPage('checkout'); top(); }}/>` : null}
+  </div>`;
+}
+
+/* ---------- admin ---------- */
+function niceMax(v){ if (v <= 0) return 10; const e = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * e >= v) return m * e; return 10 * e; }
+function RevenueChart({ orders }){
+  const today = startOfDay(Date.now()).getTime();
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const t = today - i * DAY;
+    const os = orders.filter(o => o.status !== 'Cancelled' && startOfDay(o.date).getTime() === t);
+    days.push({ t, v: round2(sum(os, o => o.total)), n: os.length });
+  }
+  const W = 640, H = 230, L = 46, R = 10, T = 22, B = 30;
+  const max = niceMax(Math.max.apply(null, days.map(d => d.v)) * 1.08);
+  const y = v => T + (H - T - B) * (1 - v / max);
+  const bw = (W - L - R) / days.length;
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map(f => f * max);
+  return html`<svg className="chart" viewBox=${'0 0 ' + W + ' ' + H} role="img" aria-label="Daily revenue for the last 14 days">
+    ${ticks.map(t => html`<g key=${t}><line className="ch-g" x1=${L} x2=${W - R} y1=${y(t)} y2=${y(t)}/><text className="ch-t" x=${L - 8} y=${y(t) + 4} textAnchor="end">$${Math.round(t)}</text></g>`)}
+    ${days.map((d, i) => { const x = L + i * bw + bw * 0.18, w = bw * 0.64, isToday = i === days.length - 1;
+      return html`<g key=${d.t}>
+        <rect className=${'ch-b' + (isToday ? ' today' : '')} x=${x} y=${y(d.v)} width=${w} height=${Math.max(0, y(0) - y(d.v))} rx="3"><title>${fmtDate(d.t)}: ${money(d.v)} from ${d.n} orders</title></rect>
+        ${i % 2 === 1 ? html`<text className="ch-t" x=${x + w / 2} y=${H - 10} textAnchor="middle">${isToday ? 'Today' : fmtDate(d.t)}</text>` : null}
+        ${isToday ? html`<text className="ch-v" x=${x + w / 2} y=${y(d.v) - 7} textAnchor="middle">${money(d.v)}</text>` : null}</g>`; })}
+  </svg>`;
+}
+
+function Overview({ store, setStore, toast, go }){
+  const now = Date.now(), from = startOfDay(now).getTime() - 29 * DAY;
+  const recent = store.orders.filter(o => new Date(o.date).getTime() >= from);
+  const valid = recent.filter(o => o.status !== 'Cancelled');
+  const revenue = sum(valid, o => o.total), units = sum(valid, o => sum(o.lines, l => l.qty));
+  const todayOs = valid.filter(o => startOfDay(o.date).getTime() === startOfDay(now).getTime());
+  const tally = {};
+  valid.forEach(o => o.lines.forEach(l => { tally[l.id] = (tally[l.id] || 0) + l.qty; }));
+  const topP = Object.keys(tally).map(id => ({ p: store.products.find(p => p.id === id), n: tally[id] })).filter(x => x.p).sort((a, b) => b.n - a.n).slice(0, 5);
+  const low = store.products.filter(p => p.active && p.stock <= 8).sort((a, b) => a.stock - b.stock);
+  const restock = p => { setStore(s => Object.assign({}, s, { products: s.products.map(x => x.id === p.id ? Object.assign({}, x, { stock: x.stock + 20 }) : x) })); toast('Restocked ' + p.name + ' (+20)'); };
+  const latest = store.orders.slice(-6).reverse();
+  return html`<div>
+    <div className="main-head"><div><h1>Overview</h1><p>Last 30 days · sample data plus any orders you place in the shop</p></div></div>
+    <div className="kpis">
+      <div className="kpi"><div className="k">Revenue</div><div className="v">${money(revenue)}</div><div className="s">Today ${money(sum(todayOs, o => o.total))}</div></div>
+      <div className="kpi"><div className="k">Orders</div><div className="v">${valid.length}</div><div className="s">${recent.length - valid.length} cancelled</div></div>
+      <div className="kpi"><div className="k">Average order</div><div className="v">${money(valid.length ? revenue / valid.length : 0)}</div><div className="s">${units} items sold</div></div>
+      <div className="kpi"><div className="k">Subscribers</div><div className="v">${store.subscribers}</div><div className="s">For promo emails</div></div>
+    </div>
+    <div className="panels">
+      <div className="box"><div className="box-h"><h2>Daily revenue</h2><span className="s">Last 14 days</span></div><${RevenueChart} orders=${store.orders}/></div>
+      <div className="box"><div className="box-h"><h2>Best sellers</h2><span className="s">Units, 30 days</span></div>
+        <div className="bars">${topP.map(x => html`<div className="barrow" key=${x.p.id}><span>${x.p.name}</span><b className="tab">${x.n}</b>
+          <span className="track"><i style=${{ width: (x.n / topP[0].n * 100) + '%' }}></i></span></div>`)}</div></div>
+    </div>
+    <div className="panels">
+      <div className="box"><div className="box-h"><h2>Latest orders</h2><button className="btn btn-sm btn-ghost" onClick=${() => go('orders')}>View all</button></div>
+        <div className="tablewrap" style=${{ border: 0 }}><table><tbody>${latest.map(o => html`<tr key=${o.id}>
+          <td className="mono">${o.id}</td><td>${o.customer}</td><td className="muted">${fmtDT(o.date)}</td><td className="r tab">${money(o.total)}</td><td><${Pill} s=${o.status}/></td></tr>`)}</tbody></table></div></div>
+      <div className="box"><div className="box-h"><h2>Low stock</h2><span className="s">8 or fewer</span></div>
+        ${low.length ? low.map(p => html`<div className="low-row" key=${p.id}><div className="thumb"><${Art} p=${p}/></div><span className="nm">${p.name}</span>
+          <span className=${'stock-n' + (p.stock === 0 ? ' zero' : '')}>${p.stock}</span><button className="btn btn-sm" onClick=${() => restock(p)}>Restock +20</button></div>`) : html`<p className="muted" style=${{ margin: 0 }}>Every product is well stocked.</p>`}</div>
+    </div>
+  </div>`;
+}
+
+function Orders({ store, setStore, toast }){
+  const [filter, setFilter] = useState('All');
+  const [q, setQ] = useState('');
+  const [openId, setOpenId] = useState(null);
+  const counts = {}; store.orders.forEach(o => { counts[o.status] = (counts[o.status] || 0) + 1; });
+  const s = q.trim().toLowerCase();
+  const list = store.orders.slice().reverse().filter(o => (filter === 'All' || o.status === filter) && (!s || (o.id + ' ' + o.customer + ' ' + o.city).toLowerCase().includes(s)));
+  const setStatus = (id, st) => { setStore(x => Object.assign({}, x, { orders: x.orders.map(o => o.id === id ? Object.assign({}, o, { status: st }) : o) })); toast(id + ' marked as ' + st); };
+  return html`<div>
+    <div className="main-head"><div><h1>Orders</h1><p>${store.orders.length} orders · change a status and the customer’s “My orders” page updates</p></div></div>
+    <div className="toolbar">
+      <div className="chips" role="group" aria-label="Filter by status">${['All'].concat(STATUSES).map(st => html`<button key=${st} className="chip" aria-pressed=${filter === st} onClick=${() => setFilter(st)}>${st}<span className="n">${st === 'All' ? store.orders.length : counts[st] || 0}</span></button>`)}</div>
+      <label className="search"><${Icon} n="search"/><span className="sr">Search orders</span><input id="order-search" placeholder="Order, customer or city" value=${q} onChange=${e => setQ(e.target.value)}/></label>
+    </div>
+    <div className="tablewrap"><table>
+      <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Payment</th><th className="r">Total</th><th>Status</th></tr></thead>
+      <tbody>${list.length ? list.map(o => html`<${React.Fragment} key=${o.id}>
+        <tr className="clickable" onClick=${() => setOpenId(openId === o.id ? null : o.id)}>
+          <td><span className="mono">${o.id}</span>${o.mine ? html` <span className="badge new" style=${{ fontSize: '10.5px' }}>You</span>` : null}</td>
+          <td className="muted">${fmtDT(o.date)}</td><td>${o.customer}<div className="muted" style=${{ fontSize: '12.5px' }}>${o.city}, ${o.country}</div></td>
+          <td className="tab">${sum(o.lines, l => l.qty)}</td><td>${o.payment}</td><td className="r tab"><b>${money(o.total)}</b></td>
+          <td onClick=${e => e.stopPropagation()}><label className="sr" htmlFor=${'st-' + o.id}>Status of ${o.id}</label>
+            <select id=${'st-' + o.id} className=${'status-select st-' + o.status} value=${o.status} onChange=${e => setStatus(o.id, e.target.value)}>${STATUSES.map(st => html`<option key=${st}>${st}</option>`)}</select></td>
+        </tr>
+        ${openId === o.id ? html`<tr className="detail"><td colSpan="7"><div className="detail-lines">
+          ${o.lines.map(l => html`<div key=${l.id}><span>${l.qty} × ${l.name}</span><span className="tab">${money(l.price * l.qty)}</span></div>`)}
+          ${o.discount ? html`<div style=${{ color: 'var(--plum)' }}><span>Discount ${o.coupon}</span><span className="tab">−${money(o.discount)}</span></div>` : null}
+          <div><span className="muted">Shipping (${o.delivery})</span><span className="tab">${o.shipping ? money(o.shipping) : 'Free'}</span></div>
+          <div><span className="muted">${o.email}</span><b className="tab">${money(o.total)}</b></div></div></td></tr>` : null}
+      <//>`) : html`<tr><td colSpan="7" className="muted" style=${{ textAlign: 'center', padding: '30px' }}>No orders match this filter.</td></tr>`}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function Products({ store, setStore, toast }){
+  const [adding, setAdding] = useState(false);
+  const [np, setNp] = useState({ name: '', cat: 'green', price: '', stock: '', size: '', origin: '' });
+  const [err, setErr] = useState('');
+  const upd = (id, patch) => setStore(s => Object.assign({}, s, { products: s.products.map(p => p.id === id ? Object.assign({}, p, patch) : p) }));
+  const add = e => {
+    e.preventDefault();
+    const price = parseFloat(np.price), stock = parseInt(np.stock, 10);
+    if (!np.name.trim()) return setErr('Give the product a name.');
+    if (!(price > 0)) return setErr('Enter a price above $0.');
+    if (!(stock >= 0)) return setErr('Enter a stock count of 0 or more.');
+    const shape = { green: 'tin', black: 'tin', oolong: 'pouch', herbal: 'pouch', teaware: 'cup', gifts: 'box' }[np.cat];
+    const p = { id: 'p' + Date.now(), sku: np.cat.slice(0, 2).toUpperCase() + '-' + np.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() + '-NEW', name: np.name.trim(), cat: np.cat, price: round2(price), compare: null, stock,
+      hue: hashHue(np.name), shape, origin: np.origin.trim() || 'Penang, Malaysia', size: np.size.trim() || '100 g', spec: isTea(np.cat) ? '90°C · 3 min · 3 g per cup' : 'See product notes',
+      desc: 'A new addition to the Leaf & Lantern range.', rating: 5, reviews: 0, tags: ['new'], active: true };
+    setStore(s => Object.assign({}, s, { products: [p].concat(s.products) }));
+    setNp({ name: '', cat: 'green', price: '', stock: '', size: '', origin: '' }); setErr(''); setAdding(false);
+    toast(p.name + ' is live in the shop');
+  };
+  return html`<div>
+    <div className="main-head"><div><h1>Products</h1><p>Edit price and stock inline. Hidden products disappear from the shop.</p></div>
+      <button className="btn btn-accent" onClick=${() => setAdding(!adding)}><${Icon} n=${adding ? 'x' : 'plus'}/>${adding ? 'Cancel' : 'Add product'}</button></div>
+    ${adding ? html`<form className="box stack" style=${{ marginBottom: '14px' }} onSubmit=${add}>
+      <div className="formgrid">
+        <div className="field" style=${{ gridColumn: 'span 2' }}><label htmlFor="np-name">Name</label><input id="np-name" className="input" value=${np.name} onChange=${e => setNp(Object.assign({}, np, { name: e.target.value }))} placeholder="e.g. Silver Needle White"/></div>
+        <div className="field"><label htmlFor="np-cat">Category</label><select id="np-cat" className="select" value=${np.cat} onChange=${e => setNp(Object.assign({}, np, { cat: e.target.value }))}>${CATS.slice(1).map(c => html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}</select></div>
+        <div className="field"><label htmlFor="np-price">Price (USD)</label><input id="np-price" className="input" type="number" min="0" step="0.5" value=${np.price} onChange=${e => setNp(Object.assign({}, np, { price: e.target.value }))}/></div>
+        <div className="field"><label htmlFor="np-stock">Stock</label><input id="np-stock" className="input" type="number" min="0" value=${np.stock} onChange=${e => setNp(Object.assign({}, np, { stock: e.target.value }))}/></div>
+        <div className="field"><label htmlFor="np-size">Size</label><input id="np-size" className="input" value=${np.size} placeholder="100 g" onChange=${e => setNp(Object.assign({}, np, { size: e.target.value }))}/></div>
+        <div className="field"><label htmlFor="np-origin">Origin</label><input id="np-origin" className="input" value=${np.origin} placeholder="Fujian, China" onChange=${e => setNp(Object.assign({}, np, { origin: e.target.value }))}/></div>
+      </div>
+      ${err ? html`<div className="err">${err}</div>` : null}
+      <div><button className="btn btn-accent" type="submit">Publish product</button></div>
+    </form>` : null}
+    <div className="tablewrap"><table>
+      <thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th className="r">Rating</th><th>In shop</th></tr></thead>
+      <tbody>${store.products.map(p => html`<tr key=${p.id}>
+        <td><div className="prod-cell"><div className="thumb"><${Art} p=${p}/></div><div><div style=${{ fontWeight: 600 }}>${p.name}</div><div className="muted mono">${p.sku}</div></div></div></td>
+        <td>${catName(p.cat)}</td>
+        <td><label className="sr" htmlFor=${'pr-' + p.id}>Price of ${p.name}</label><input id=${'pr-' + p.id} className="cell-input" type="number" min="0" step="0.5" value=${p.price} onChange=${e => upd(p.id, { price: Math.max(0, parseFloat(e.target.value) || 0) })}/></td>
+        <td><label className="sr" htmlFor=${'sk-' + p.id}>Stock of ${p.name}</label><input id=${'sk-' + p.id} className="cell-input" type="number" min="0" value=${p.stock} style=${p.stock <= 8 ? { borderColor: 'var(--warn)' } : null} onChange=${e => upd(p.id, { stock: Math.max(0, parseInt(e.target.value, 10) || 0) })}/></td>
+        <td className="r tab">${p.reviews ? p.rating.toFixed(1) : '—'}</td>
+        <td><button className="switch" role="switch" aria-checked=${p.active} aria-label=${'Show ' + p.name + ' in shop'} onClick=${() => { upd(p.id, { active: !p.active }); toast(p.name + (p.active ? ' hidden from the shop' : ' is back in the shop')); }}></button></td>
+      </tr>`)}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function Promotions({ store, setStore, toast }){
+  const [ann, setAnn] = useState(store.announcement);
+  const [nc, setNc] = useState({ code: '', type: 'percent', value: '', min: '' });
+  const [err, setErr] = useState('');
+  const active = store.coupons.filter(c => c.active);
+  const [send, setSend] = useState(active[0] ? active[0].code : '');
+  const toggle = c => { setStore(s => Object.assign({}, s, { coupons: s.coupons.map(x => x.code === c.code ? Object.assign({}, x, { active: !x.active }) : x) })); toast(c.code + (c.active ? ' paused' : ' is active')); };
+  const create = e => {
+    e.preventDefault();
+    const code = nc.code.trim().toUpperCase().replace(/\s+/g, ''), value = parseFloat(nc.value) || 0, min = parseFloat(nc.min) || 0;
+    if (!/^[A-Z0-9]{3,15}$/.test(code)) return setErr('Use 3–15 letters or numbers for the code.');
+    if (store.coupons.find(c => c.code === code)) return setErr(code + ' already exists.');
+    if (nc.type === 'percent' && !(value > 0 && value <= 90)) return setErr('Enter a percentage between 1 and 90.');
+    if (nc.type === 'fixed' && !(value > 0)) return setErr('Enter an amount above $0.');
+    setStore(s => Object.assign({}, s, { coupons: s.coupons.concat([{ code, type: nc.type, value: nc.type === 'ship' ? 0 : value, min, active: true, uses: 0 }]) }));
+    setNc({ code: '', type: 'percent', value: '', min: '' }); setErr(''); toast(code + ' created. Try it in the cart.');
+  };
+  return html`<div>
+    <div className="main-head"><div><h1>Promotions</h1><p>Discount codes, the shop announcement bar and offer emails</p></div></div>
+    <div className="panels">
+      <div className="stack">
+        <div className="tablewrap"><table>
+          <thead><tr><th>Code</th><th>Rule</th><th className="r">Uses</th><th>Active</th></tr></thead>
+          <tbody>${store.coupons.map(c => html`<tr key=${c.code}><td className="code">${c.code}</td><td style=${{ whiteSpace: 'normal', minWidth: '180px' }}>${couponRule(c)}</td><td className="r tab">${c.uses}</td>
+            <td><button className="switch" role="switch" aria-checked=${c.active} aria-label=${'Activate ' + c.code} onClick=${() => toggle(c)}></button></td></tr>`)}</tbody>
+        </table></div>
+        <form className="box stack" onSubmit=${create}>
+          <div className="box-h" style=${{ margin: 0 }}><h2>New discount code</h2></div>
+          <div className="formgrid">
+            <div className="field"><label htmlFor="nc-code">Code</label><input id="nc-code" className="input code" placeholder="SPRING15" value=${nc.code} onChange=${e => setNc(Object.assign({}, nc, { code: e.target.value.toUpperCase() }))}/></div>
+            <div className="field"><label htmlFor="nc-type">Type</label><select id="nc-type" className="select" value=${nc.type} onChange=${e => setNc(Object.assign({}, nc, { type: e.target.value }))}>
+              <option value="percent">Percent off</option><option value="fixed">Amount off</option><option value="ship">Free shipping</option></select></div>
+            ${nc.type !== 'ship' ? html`<div className="field"><label htmlFor="nc-value">${nc.type === 'percent' ? 'Percent' : 'Amount (USD)'}</label><input id="nc-value" className="input" type="number" min="0" value=${nc.value} onChange=${e => setNc(Object.assign({}, nc, { value: e.target.value }))}/></div>` : null}
+            <div className="field"><label htmlFor="nc-min">Minimum order (USD)</label><input id="nc-min" className="input" type="number" min="0" placeholder="0" value=${nc.min} onChange=${e => setNc(Object.assign({}, nc, { min: e.target.value }))}/></div>
+          </div>
+          ${err ? html`<div className="err">${err}</div>` : null}
+          <div><button className="btn btn-accent" type="submit"><${Icon} n="tag"/>Create code</button></div>
+        </form>
+      </div>
+      <div className="stack">
+        <div className="box stack">
+          <div className="box-h" style=${{ margin: 0 }}><h2>Announcement bar</h2><span className="s">Shown above the shop</span></div>
+          <div className="field"><label htmlFor="ann">Message</label><textarea id="ann" className="input" rows="3" maxLength="120" value=${ann} onChange=${e => setAnn(e.target.value)}></textarea>
+            <div className="hint">${ann.length}/120 characters · leave empty to hide the bar</div></div>
+          ${ann.trim() ? html`<div className="preview-strip">${ann}</div>` : null}
+          <div><button className="btn btn-accent" disabled=${ann === store.announcement} onClick=${() => { setStore(s => Object.assign({}, s, { announcement: ann })); toast('Announcement updated in the shop'); }}>Save announcement</button></div>
+        </div>
+        <div className="box stack">
+          <div className="box-h" style=${{ margin: 0 }}><h2>Send an offer</h2><span className="s">${store.subscribers} subscribers</span></div>
+          ${active.length ? html`<div className="field"><label htmlFor="send-code">Discount code to feature</label>
+            <select id="send-code" className="select" value=${send} onChange=${e => setSend(e.target.value)}>${active.map(c => html`<option key=${c.code} value=${c.code}>${c.code} · ${couponRule(c)}</option>`)}</select></div>
+            <button className="btn" onClick=${() => toast('Offer with ' + send + ' queued for ' + store.subscribers + ' subscribers (demo, no emails sent)')}><${Icon} n="send"/>Send to subscribers</button>`
+            : html`<p className="muted" style=${{ margin: 0 }}>Activate a discount code first.</p>`}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function Admin({ store, setStore, toast, goShop }){
+  const [tab, setTab] = useState('overview');
+  const pending = store.orders.filter(o => o.status === 'Pending' || o.status === 'Paid').length;
+  const tabs = [['overview', 'Overview', 'grid'], ['orders', 'Orders', 'list'], ['products', 'Products', 'box'], ['promotions', 'Promotions', 'tag']];
+  const props = { store, setStore, toast, go: setTab };
+  return html`<div className="admin">
+    <aside className="side">
+      <${Brand} sub="Admin" onClick=${() => setTab('overview')}/>
+      <nav className="nav" aria-label="Admin sections">${tabs.map(t => html`<button key=${t[0]} aria-current=${tab === t[0] ? 'page' : null} onClick=${() => setTab(t[0])}>
+        <${Icon} n=${t[2]}/>${t[1]}${t[0] === 'orders' && pending ? html`<span className="n" title="Orders to fulfil">${pending}</span>` : null}</button>`)}
+        <button onClick=${goShop}><${Icon} n="store"/>View shop</button></nav>
+      <div className="side-foot">Signed in as <b>Store owner</b><br/>Sample data · resets with “Reset demo”</div>
+    </aside>
+    <main className="main">
+      ${tab === 'overview' ? html`<${Overview} ...${props}/>` : tab === 'orders' ? html`<${Orders} ...${props}/>` : tab === 'products' ? html`<${Products} ...${props}/>` : html`<${Promotions} ...${props}/>`}
+    </main>
+  </div>`;
+}
+
+/* ---------- app ---------- */
+function Toasts({ items }){
+  return html`<div className="toasts" role="status" aria-live="polite">${items.map(t => html`<div className="toast" key=${t.id}><${Icon} n="check"/>${t.msg}</div>`)}</div>`;
+}
+const STORE_KEY = 'leaf-lantern-demo-v1', CART_KEY = 'leaf-lantern-cart-v1';
+function App(){
+  const [view, setView] = useState(() => { try { return location.hash === '#admin' ? 'admin' : 'shop'; } catch (e) { return 'shop'; } });
+  const [store, setStore] = useState(() => { const s = load(STORE_KEY); return s && s.v === 1 ? s : freshStore(); });
+  const [cart, setCart] = useState(() => load(CART_KEY) || []);
+  const [code, setCode] = useState(null);
+  const [toasts, setToasts] = useState([]);
+  const [armed, setArmed] = useState(false);
+  const tid = useRef(0);
+  useEffect(() => save(STORE_KEY, store), [store]);
+  useEffect(() => save(CART_KEY, cart), [cart]);
+  useEffect(() => { try { history.replaceState(null, '', '#' + view); } catch (e) {} }, [view]);
+  useEffect(() => { if (!armed) return; const t = setTimeout(() => setArmed(false), 3500); return () => clearTimeout(t); }, [armed]);
+  const toast = msg => { const id = ++tid.current; setToasts(t => t.concat([{ id, msg }]).slice(-3)); setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3200); };
+  const go = v => { setView(v); try { window.scrollTo({ top: 0 }); } catch (e) {} };
+  const reset = () => {
+    if (!armed) { setArmed(true); return; }
+    setStore(freshStore()); setCart([]); setCode(null); setArmed(false); toast('Demo reset to its starting data');
+  };
+  return html`<div>
+    <div className="demobar gutter"><div className="wrap">
+      <span className="tag">Demo</span>
+      <span className="note">Fictional store with sample data. Try a purchase, then manage it in Admin.</span>
+      <div className="seg" role="group" aria-label="Switch view">
+        <button aria-pressed=${view === 'shop'} onClick=${() => go('shop')}><${Icon} n="store"/>Shop</button>
+        <button aria-pressed=${view === 'admin'} onClick=${() => go('admin')}><${Icon} n="chart"/>Admin</button>
+      </div>
+      <button className=${'reset' + (armed ? ' armed' : '')} onClick=${reset}>${armed ? 'Click again to reset' : 'Reset demo'}</button>
+    </div></div>
+    ${view === 'shop'
+      ? html`<${Shop} store=${store} setStore=${setStore} cart=${cart} setCart=${setCart} code=${code} setCode=${setCode} toast=${toast} goAdmin=${() => go('admin')}/>`
+      : html`<${Admin} store=${store} setStore=${setStore} toast=${toast} goShop=${() => go('shop')}/>`}
+    <${Toasts} items=${toasts}/>
+  </div>`;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(html`<${App}/>`);
+})();
+</script>
+</body>
+</html>
